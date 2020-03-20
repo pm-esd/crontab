@@ -10,7 +10,6 @@
 package crontab
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -20,6 +19,23 @@ import (
 
 //TimeUnit 是用于在内部处理时间单位的计数
 type TimeUnit int
+
+type Logger interface {
+	Panic(args ...interface{})
+	Fatal(args ...interface{})
+	Error(args ...interface{})
+	Warning(args ...interface{})
+	Warn(args ...interface{})
+	Info(args ...interface{})
+	Debug(args ...interface{})
+	Trace(args ...interface{})
+}
+
+var Log Logger
+
+func SetLogger(logger Logger) {
+	Log = logger
+}
 
 const (
 	none = iota
@@ -64,11 +80,11 @@ func (j *Job) Every(frequencies ...int) *Job {
 		j.frequency = 1
 	case 1:
 		if frequencies[0] <= 0 {
-			panic("Every expects frequency to be greater than of equal to 1")
+			Log.Panic("Every expects frequency to be greater than of equal to 1")
 		}
 		j.frequency = frequencies[0]
 	default:
-		panic("Every expects 0 or 1 arguments")
+		Log.Panic("Every expects 0 or 1 arguments")
 	}
 
 	return j
@@ -114,10 +130,10 @@ func (j *Job) unitNotWEEKDAY() bool {
 func (j *Job) scheduleNextRun() {
 	if j.frequency == 1 {
 		if j.isAtUsedIncorrectly() {
-			panic(
+			Log.Panic(
 				`Cannot schedule Every(1) with At()
 				 when unit is not day or WEEKDAY`,
-			) // TODO: Turn this into err
+			)
 		}
 
 		if j.unitNotDayOrWEEKDAY() {
@@ -179,11 +195,9 @@ func (j *Job) scheduleNextRun() {
 
 		}
 
-		fmt.Println("Scheduled for ", j.nextScheduledRun)
-
 	} else {
 		if j.isAtUsedIncorrectly() {
-			panic("Cannot schedule Every(>1) with At() when unit is not day")
+			Log.Panic("Cannot schedule Every(>1) with At() when unit is not day")
 		}
 
 		if j.unitNotWEEKDAY() {
@@ -239,11 +253,8 @@ func (j *Job) scheduleNextRun() {
 			}
 
 		} else {
-			panic("Cannot schedule Every(>1) when unit is WEEKDAY")
+			Log.Panic("Cannot schedule Every(>1) when unit is WEEKDAY")
 		}
-
-		fmt.Println("Scheduled for ", j.nextScheduledRun)
-
 	}
 	return
 }
